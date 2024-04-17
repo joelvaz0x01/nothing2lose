@@ -1,0 +1,16 @@
+{
+	"name": "NOTHING2LOSE",
+	"build": {
+		"dockerfile": "Dockerfile"
+	},
+
+	"remoteUser": "vscode",
+
+	"customizations": {
+		"vscode": {
+			"settings": {
+				"python.defaultInterpreterPath": "/usr/local/bin/python"
+			}
+		}
+	},
+}
