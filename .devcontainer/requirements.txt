@@ -1,2 +1,2 @@
-cryptography
 pwinput
+pycryptodome
