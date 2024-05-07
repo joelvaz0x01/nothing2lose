@@ -1,24 +1,21 @@
-import sqlite3
-
-from database import add_user, email_exists, verify_email_password
-import pwinput
-import hashlib
 from Crypto.Cipher import AES
 from Crypto.Hash import HMAC, SHA256, SHA512
 from Crypto.Random import get_random_bytes
-import os
+from database import add_user, email_exists, verify_email_password
+from getpass import getpass
+from pwinput import pwinput
 import re
 import secrets
 
 
 def select_aes():
     """
-    Função que permite ao utilizador escolher o modo de encriptação
+    Function that allows the user to choose the encryption mode of AES128
 
     Returns:
     --------
     mode : str
-        Modo de encriptação escolhido para AES128
+        Encryption mode chosen for AES128
     """
 
     while True:
@@ -39,12 +36,12 @@ def select_aes():
 
 def select_hmac():
     """
-    Função que permite ao utilizador escolher o modo de encriptação
+    Function that allows the user to choose the encryption mode for HMAC
 
     Returns:
     --------
     mode : str
-        Modo de encriptação escolhido para HMAC
+        Encryption mode chosen for HMAC
     """
     while True:
         try:
@@ -64,18 +61,18 @@ def select_hmac():
 
 def encrypt(email, password, aes_mode, hmac_mode, ):
     """
-    Gera uma chave e guarda-a num ficheiro
+    Encrypts the data and stores it in a file
 
-    Atributes:
+    Attributes:
     ----------
     data : bytes
-        Dados a encriptar
+        Data to encrypt
     mode_aes : str
-        Modo de encriptação para AES128
+        Encryption mode chosen for AES128
     mode_hmac : str
-        Modo de encriptação para HMAC
-    username : str
-        Nome do utilizador
+        Encryption mode chosen for HMAC
+    email : str
+        Email of the user
     """
     key = get_random_bytes(16)  # Chave 128 bits para AES
     iv = get_random_bytes(16)  # IV de 128 bits
@@ -104,42 +101,34 @@ def encrypt(email, password, aes_mode, hmac_mode, ):
         f.write(key)
 
     # Dados encriptados
-    # TODO: Guardar os dados encriptados na base de dados
     return iv + ciphertext + hmac_value
 
 
-"""
-with open("encrypted_data.bin", "wb") as f:
-    f.write(iv + ciphertext + hmac_value)
-"""
-
-
-def decrypt(file_name, username, mode_aes, mode_hmac):
+def decrypt(filename, username, mode_aes, mode_hmac):
     """
-    Desencripta e verifica a integridade dos dados
+    Decrypts and verifies the integrity of the data
 
-    Atributes:
+    Attributes:
     ----------
-    file_name : str
-        Nome do ficheiro com os dados encriptados
+    filename : str
+        Filename with the encrypted data
     username : str
-        Nome do ficheiro com a chave
+        Filename with the key
     mode_aes : str
-        Modo de encriptação para AES128
+        Encryption mode chosen for AES128
     mode_hmac : str
-        Modo de encriptação para HMAC
+        Encryption mode chosen for HMAC
 
     Returns:
     --------
     decrypted_data : bytes
-        Dados desencriptados
+        Decrypted data
     """
     # Ler chave do utilizador
-    with open(file_name, "rb") as f:
+    with open(filename, "rb") as f:
         key = f.read()
 
     # Ler dados encriptados da base de dados
-    # TODO: Ler a chave da base de dados
     with open(f'{username}/key.bin', "rb") as f:
         encrypted_data = f.read()
 
@@ -172,22 +161,8 @@ def decrypt(file_name, username, mode_aes, mode_hmac):
     return decrypted_data
 
 
-"""
-def cipher(p):
-    salt = os.urandom(32)
-    add_salt(salt)
-    p = p.encode()
-    hp = hashlib.pbkdf2_hmac('sha256', p, salt, 10000)
-    return hp
-
-"""
-
-
 def register():
-    """Função que permite ao utilizador registar-se no sistema"""
-    aes_mode = select_aes()
-    hmac_mode = select_hmac()
-
+    """Function that allows the user to register in the system"""
     while True:
         email = input("Introduza o seu email: ")
         # validate username email regex
@@ -199,8 +174,8 @@ def register():
             break
 
     while True:
-        password = pwinput.pwinput("Introduza a sua password: ", mask='')
-        password_confirmation = pwinput.pwinput("Confirme a sua password:")
+        password = getpass("Introduza a sua password: ")
+        password_confirmation = getpass("Confirme a sua password: ")
         if len(password) < 8:
             print("A password deve ter pelo menos 8 caracteres.\n")
         elif password != password_confirmation:
@@ -208,41 +183,18 @@ def register():
         else:
             break
 
+    add_user(email, password)
     print("Registado com sucesso!")
-    hp = cipher(password)
-    # key = Fernet.generate_key()
-    add_user(email, hp, key)
-    currentDir = os.getcwd()  # Indica a diretoria actual
-    newDir = email  # Iguala o nome da nova diretoria ao nome do utilizador
-    pth = os.path.join(currentDir, newDir)  # Junta o nome da nova diretoria à diretoria actual
-    os.mkdir(pth)  # Cria a diretoria
-    # os.chdir(currentDir + "/" + u) #muda para a diretoria do novo user
-    print(os.getcwd())
     return
 
 
-def login(aes_mode, hmac_mode):
-    """
-    Função que permite ao utilizador fazer login no sistema
-
-    Atributes:
-    ----------
-    mode_aes : str
-        Modo de encriptação para AES128
-    mode_hmac : str
-        Modo de encriptação para HMAC
-    """
-    email = input("Introduza o seu username: ")
-    password = pwinput.pwinput("Introduza a sua password: ")
-    ciphertext = encrypt(email, password, aes_mode, hmac_mode)
+def login():
+    """Function that allows the user to login in the system"""
+    email = input("Introduza o seu email: ")
+    password = getpass("Introduza a sua password: ")
     if email_exists(email):
-        if verify_email_password(email, ciphertext):
+        if verify_email_password(email, password):
             print("Login efetuado com sucesso!\n")
-            current_dir = os.getcwd()  # Indica a diretoria actual
-            print(current_dir)
-            usr_dir = current_dir + "/" + email
-            os.chdir(usr_dir)  # muda para a diretoria do novo user
-            print(os.getcwd())
             dashboard_menu(email)
         else:
             print("Password incorreta. Tente novamente.\n")
@@ -251,6 +203,14 @@ def login(aes_mode, hmac_mode):
 
 
 def dashboard_menu(email):
+    """
+    Dashboard menu for the user
+
+    Attributes:
+    ----------
+    email : str
+        Email of the user
+    """
     while True:
         try:
             print(f'\nDashboad de {email}')
@@ -282,12 +242,12 @@ def dashboard_menu(email):
 
 def generate_ticket_prizes():
     """
-    Gera os prémios para o bilhete de lotaria
+    Generates the prizes for the lottery ticket
 
     Returns:
     --------
     prize_security : int
-        Nível de segurança do prémio
+        Security level of the prize
     """
     key = []
     prize_security = secrets.randbelow(10)
@@ -298,17 +258,17 @@ def generate_ticket_prizes():
 
 def generate_ticket_keys(random_bits):
     """
-    Gera uma chave de 128 bits com uma parte aleatória de tamanho random_bits
+    Generates a 128-bit key with a random part of size random_bits
 
-    Atributes:
+    Attributes:
     ----------
     random_bits : int
-        Tamanho da parte aleatória da chave
+        Size of the random part of the key
 
     Returns:
     --------
     key : str
-        Chave gerada
+        Generated key
     """
     # Gerar bits aleatórios
     rand_key = secrets.randbits(random_bits)
@@ -320,39 +280,6 @@ def generate_ticket_keys(random_bits):
     key = rand_key_bin + '0' * (128 - random_bits)
     return key
 
-
-"""
-def load_key_for_encryption():
-   lines = open("key.key", "rb").readlines()
-   return lines[len(lines)-1]
-"""
-
-"""
-def load_key_for_decryption(f):
-    lines = open("key.key", "r").readlines()
-    waitingFiles = os.getcwd() + "\waitingFiles"   
-    os.chdir(waitingFiles)
-    keyFound = False
-    while not keyFound:
-        for key in lines:
-            print(key)
-            if decrypt(f, key):
-                remove_key_from_file(key)
-                return True
-            else:
-                continue
-        break
-    return False
-"""
-
-"""
-def remove_key_from_file(key):
-    lines = open("key.key", "r").readlines()
-    with open("key.key", "w") as f:
-        for k in lines:
-            if k != key:
-                f.write(k)
-"""
 
 """
 def encrypt(filename, key):

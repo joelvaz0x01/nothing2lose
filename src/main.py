@@ -1,5 +1,5 @@
-from functions import register, login
 from database import create_db
+from functions import register, login
 
 
 def main_menu():
