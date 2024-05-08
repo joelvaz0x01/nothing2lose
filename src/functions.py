@@ -96,11 +96,11 @@ def encrypt(email, password, aes_mode, hmac_mode, ):
     hmac_hash.update(ciphertext)
     hmac_value = hmac_hash.digest()
 
-    # Chave do utilizador
+    # user key
     with open(f'{email}/key.bin', 'wb') as f:
         f.write(key)
 
-    # Dados encriptados
+    # encrypted data
     return iv + ciphertext + hmac_value
 
 
@@ -124,17 +124,17 @@ def decrypt(filename, username, mode_aes, mode_hmac):
     decrypted_data : bytes
         Decrypted data
     """
-    # Ler chave do utilizador
+    # read the key from the file
     with open(filename, "rb") as f:
         key = f.read()
 
-    # Ler dados encriptados da base de dados
+    # read encrypted data from the database
     with open(f'{username}/key.bin', "rb") as f:
         encrypted_data = f.read()
 
-    iv = encrypted_data[:16]  # Os primeiros 16 bytes são o IV
-    ciphertext = encrypted_data[16:-32]  # Excluir IV e HMAC
-    received_hmac = encrypted_data[-32:]  # Os últimos 32 bytes são o HMAC
+    iv = encrypted_data[:16]  # the first 16 bytes is IV
+    ciphertext = encrypted_data[16:-32]  # exclude the IV and the HMAC
+    received_hmac = encrypted_data[-32:]  # the last 32 bytes is HMAC
 
     if mode_aes == "AES128-CBC":
         cipher = AES.new(key, AES.MODE_CBC, iv)
@@ -270,13 +270,13 @@ def generate_ticket_keys(random_bits):
     key : str
         Generated key
     """
-    # Gerar bits aleatórios
+    # generate a random key
     rand_key = secrets.randbits(random_bits)
 
-    # Converter para binário
+    # convert to binary
     rand_key_bin = f'{rand_key:b}'
 
-    # Preencher o resto da chave com zeros até 128 bits
+    # fill the rest of the key with zeros up to 128 bits
     key = rand_key_bin + '0' * (128 - random_bits)
     return key
 

@@ -11,11 +11,8 @@ def create_db():
         sql_connection = sqlite3.connect("users.db")
         cursor = sql_connection.cursor()
 
-        # cria tabela de utilizadores se ainda nao foi criada
+        # create table users if it doesn't exist
         cursor.execute("CREATE TABLE IF NOT EXISTS users (username text, password text)")
-
-        # cria tabela de utilizadores se ainda nao foi criada
-        # cursor.execute("CREATE TABLE IF NOT EXISTS salt (salt_val BLOB)")
 
         sql_connection.commit()
         cursor.close()
@@ -35,7 +32,7 @@ def add_user(user, password):
     hash_pass : str
         Password of the user (in plaintext)
     """
-    hash_pass = hash_password(password)  # encripta a palavra-chave
+    hash_pass = hash_password(password)
     cursor = sql_connection.cursor()
     user_values = [(user, hash_pass)]
     cursor.executemany("INSERT INTO users (username, password) VALUES (?,?)", user_values)
@@ -113,8 +110,8 @@ def verify_password(stored_password, provided_password):
     # but base64 encoding always rounds up to the nearest multiple of 4 (padding)
     # so 44 characters are used to represent 32 bytes of data (salt is 44 characters long)
 
-    salt = base64.b64decode(stored_password[:44])  # first 44 characters are the salt
-    stored_key = base64.b64decode(stored_password[44:])  # the rest is the hashed password
+    salt = base64.b64decode(stored_password[:44])  # first 44 characters is salt
+    stored_key = base64.b64decode(stored_password[44:])  # rest is the hashed password
     new_key = hashlib.pbkdf2_hmac('sha256', provided_password.encode('utf-8'), salt, 100000)
     return stored_key == new_key
 
