@@ -142,7 +142,7 @@ def decrypt(encrypted_prize, key, mode_aes, mode_hmac):
     if mode_aes == "AES128-CBC":
         iv = b64decode(data['iv'])  # decode the IV from base64
         cipher = AES.new(key, AES.MODE_CBC, iv=iv)
-        pt_bytes = unpad(cipher.decrypt(ct), AES.block_size)
+        pt_bytes = cipher.decrypt(ct)
     elif mode_aes == "AES128-CTR":
         nonce = b64decode(data['nonce'])  # decode the nonce from base64
         cipher = AES.new(key, AES.MODE_CTR, nonce=nonce)
@@ -239,7 +239,7 @@ def dashboard_menu(email):
 
     while True:
         try:
-            print(f'Dashboad de {email}')
+            print(f'\nDashboad de {email}')
             print("1 - Gerar bilhetes de lotaria")
             # check if the prizes are already generated
             if verify_global_scope():
@@ -287,12 +287,10 @@ def verify_global_scope():
 
 
 def start_brute_force(encrypted_prize):
-    start_time = time()
     brute_force = brute_force_key(encrypted_prize, aes_mode, hmac_mode)
-    end_time = time() - start_time
     is_decrypted = brute_force[2]
     if is_decrypted:
-        print(f'Tempo decorrido: {end_time:.2f} segundos')
+        print(f'Tempo decorrido: {brute_force[3]:.2f} segundos')
         print(f'Bilhete desencriptado: {brute_force[0]}')
         print(f'Chave encontrada: {int.from_bytes(brute_force[1], 'big')}')
 
@@ -403,17 +401,21 @@ def brute_force_key(encrypted_prize, mode_aes, mode_hmac):
     """
     print("Para pausar o modo de força bruta, prima CRTRL+C.\n")
     key_generated = 0
+    pause_time = 0
 
+    start_time = time()
     while True:
         try:
             key = convert_key_to_hex(key_generated)
             decrypt_result = decrypt(encrypted_prize, key, mode_aes, mode_hmac)
             if decrypt_result[2]:
-                return decrypt_result  # [pt, key, True]
+                end_time = time() - start_time - pause_time
+                return [decrypt_result[0], decrypt_result[1], decrypt_result[2], end_time]
 
             key_generated += 1
 
         except KeyboardInterrupt:
+            start_time_pause = time()
             while True:
                 try:
                     print("\nO que deseja fazer?")
@@ -422,11 +424,12 @@ def brute_force_key(encrypted_prize, mode_aes, mode_hmac):
                     print("3 - Sair do modo de força bruta.")
                     option = int(input("Selecione a opção desejada: "))
                     if option == 1:
+                        pause_time += time() - start_time_pause
                         break
                     elif option == 2:
                         print("Pergunta")
                     elif option == 3:
-                        return [-1, -1, False]  # key was not found
+                        return [-1, -1, False, 0]  # key was not found
                     else:
                         print("Opção inválida. Tente novamente.")
 
