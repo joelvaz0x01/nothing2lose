@@ -8,6 +8,7 @@ from Crypto.Util.Padding import pad, unpad
 
 from database import add_user, email_exists, verify_email_password
 from getpass import getpass
+from time import time
 from pwinput import pwinput
 import re
 import secrets
@@ -64,7 +65,7 @@ def select_hmac():
             print("Opção inválida. Tente novamente.")
 
 
-def encrypt(prize, key, aes_mode, hmac_mode):
+def encrypt(prize, key):
     """
     Encrypts the data and stores it in a file
 
@@ -74,10 +75,6 @@ def encrypt(prize, key, aes_mode, hmac_mode):
         Data to be encrypted
     key : bytes
         Key used for encryption
-    mode_aes : str
-        Encryption mode chosen for AES128
-    mode_hmac : str
-        Encryption mode chosen for HMAC
     """
     # calculate the number of bytes needed to represent the prize
     # _ // 8 to convert bits to bytes
@@ -164,12 +161,11 @@ def decrypt(encrypted_prize, key, mode_aes, mode_hmac):
 
     # verify if the HMAC value is correct
     if hmac_hash.digest() != hmac:
-        return False
+        return [-1, -1, False]
 
     # convert the plaintext bytes to a big integer
     pt = int.from_bytes(pt_bytes, 'big')
-    # return pt
-    return True
+    return [pt, key, True]
 
 
 def check_email(email):
@@ -243,7 +239,7 @@ def dashboard_menu(email):
 
     while True:
         try:
-            print(f'\nDashboad de {email}')
+            print(f'Dashboad de {email}')
             print("1 - Gerar bilhetes de lotaria")
             # check if the prizes are already generated
             if verify_global_scope():
@@ -262,12 +258,12 @@ def dashboard_menu(email):
                 key_legendary = generate_prize_keys(23)
 
                 # encrypt the prizes with the respective keys
-                encrypted_prize_s = encrypt(prize_s, key_simple, aes_mode, hmac_mode)
-                encrypted_prize_m = encrypt(prize_m, key_medium, aes_mode, hmac_mode)
-                encrypted_prize_r = encrypt(prize_r, key_rare, aes_mode, hmac_mode)
-                encrypted_prize_l = encrypt(prize_l, key_legendary, aes_mode, hmac_mode)
+                encrypted_prize_s = encrypt(prize_s, key_simple)
+                encrypted_prize_m = encrypt(prize_m, key_medium)
+                encrypted_prize_r = encrypt(prize_r, key_rare)
+                encrypted_prize_l = encrypt(prize_l, key_legendary)
 
-                print("\nPrémios gerados com sucesso!")
+                print("\nPrémios gerados com sucesso!\n")
             elif verify_global_scope() and option == 2:
                 brute_force_menu()
             elif option == 3:
@@ -290,25 +286,50 @@ def verify_global_scope():
     return 'encrypted_prize_s' in globals() and 'encrypted_prize_m' in globals() and 'encrypted_prize_r' in globals() and 'encrypted_prize_l' in globals()
 
 
+def start_brute_force(encrypted_prize):
+    start_time = time()
+    brute_force = brute_force_key(encrypted_prize, aes_mode, hmac_mode)
+    end_time = time() - start_time
+    is_decrypted = brute_force[2]
+    if is_decrypted:
+        print(f'Tempo decorrido: {end_time:.2f} segundos')
+        print(f'Bilhete desencriptado: {brute_force[0]}')
+        print(f'Chave encontrada: {int.from_bytes(brute_force[1], 'big')}')
+
+    return is_decrypted
+
+
 def brute_force_menu():
     """Menu for the brute force mode"""
+    s_is_decrypted = False
+    m_is_decrypted = False
+    r_is_decrypted = False
+    l_is_decrypted = False
+
     while True:
         try:
-            print("Escolha o prémio que deseja fazer brute force:")
-            print("1 - Prémio simples")
-            print("2 - Prémio médio")
-            print("3 - Prémio raro")
-            print("4 - Prémio lendário")
+            print("\nEscolha o prémio que deseja fazer brute force:")
+            if not s_is_decrypted:
+                print("1 - Prémio simples")
+            if not m_is_decrypted:
+                print("2 - Prémio médio")
+            if not r_is_decrypted:
+                print("3 - Prémio raro")
+            if not l_is_decrypted:
+                print("4 - Prémio lendário")
+            if s_is_decrypted and m_is_decrypted and r_is_decrypted and l_is_decrypted:
+                print("Todos os prémios foram decifrados!")
+                break
             print("5 - Sair do modo de força bruta")
             option = int(input("Selecione a opção desejada: "))
-            if option == 1:
-                brute_force_key(encrypted_prize_s, aes_mode, hmac_mode)
-            elif option == 2:
-                brute_force_key(encrypted_prize_m, aes_mode, hmac_mode)
-            elif option == 3:
-                brute_force_key(encrypted_prize_r, aes_mode, hmac_mode)
-            elif option == 4:
-                brute_force_key(encrypted_prize_l, aes_mode, hmac_mode)
+            if not s_is_decrypted and option == 1:
+                s_is_decrypted = start_brute_force(encrypted_prize_s)
+            elif not m_is_decrypted and option == 2:
+                m_is_decrypted = start_brute_force(encrypted_prize_m)
+            elif not r_is_decrypted and option == 3:
+                r_is_decrypted = start_brute_force(encrypted_prize_r)
+            elif not l_is_decrypted and option == 4:
+                l_is_decrypted = start_brute_force(encrypted_prize_l)
             elif option == 5:
                 break
         except ValueError:
@@ -331,6 +352,27 @@ def generate_prizes():
     return key
 
 
+def convert_key_to_hex(key):
+    """
+    Converts the key to bytes
+
+    Attributes:
+    ----------
+    prize : int
+        Prize to be converted to bytes
+
+    Returns:
+    --------
+    prize_bytes : bytes
+        Prize converted to bytes
+    """
+    key_in_binary = f'{key:b}'
+    bit_length = len(key_in_binary)
+    final_key_binary = key_in_binary + '0' * (128 - bit_length)  # fill the rest of the key with zeros
+    final_key_hex = int(final_key_binary, 2).to_bytes(16, 'big')
+    return final_key_hex
+
+
 def generate_prize_keys(random_bits):
     """
     Generates a 128-bit key with a random part of size random_bits
@@ -345,19 +387,9 @@ def generate_prize_keys(random_bits):
     key : str
         Generated key
     """
-    # generate a random key
-    rand_key = secrets.randbits(random_bits)
-
-    # convert to binary
-    rand_key_bin = f'{rand_key:b}'
-
-    # fill the rest of the key with zeros up to 128 bits
-    key_binary = rand_key_bin + '0' * (128 - random_bits)
-
-    # convert the key to bytes
-    key = int(key_binary, 2).to_bytes(16, 'big')
-
-    return key
+    rand_key = secrets.randbits(random_bits)  # generate a random key
+    print(f"Chave gerada: {rand_key}")
+    return convert_key_to_hex(rand_key)
 
 
 def brute_force_key(encrypted_prize, mode_aes, mode_hmac):
@@ -369,18 +401,15 @@ def brute_force_key(encrypted_prize, mode_aes, mode_hmac):
     key : str
         Generated key
     """
-    print("Para pausar o modo de força bruta, prima CRTRL+C.")
-    print("Caso queira uma dica, prima d. Terá que responder a uma pergunta.")
+    print("Para pausar o modo de força bruta, prima CRTRL+C.\n")
     key_generated = 0
 
     while True:
         try:
-            key_bin = f'{key_generated:b}'
-            key_binary = key_bin + '0' * (128 - key_generated)
-            key = int(key_binary, 2).to_bytes(16, 'big')
-
-            if decrypt(encrypted_prize, key, mode_aes, mode_hmac):
-                return key
+            key = convert_key_to_hex(key_generated)
+            decrypt_result = decrypt(encrypted_prize, key, mode_aes, mode_hmac)
+            if decrypt_result[2]:
+                return decrypt_result  # [pt, key, True]
 
             key_generated += 1
 
@@ -397,7 +426,7 @@ def brute_force_key(encrypted_prize, mode_aes, mode_hmac):
                     elif option == 2:
                         print("Pergunta")
                     elif option == 3:
-                        return
+                        return [-1, -1, False]  # key was not found
                     else:
                         print("Opção inválida. Tente novamente.")
 
