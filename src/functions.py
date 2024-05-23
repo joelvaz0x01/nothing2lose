@@ -170,12 +170,18 @@ def decrypt(encrypted_prize, key, mode_aes, mode_hmac):
     return pt
 
 
+def check_email(email):
+    return re.match(r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$', email)
+
+
 def register():
     """Function that allows the user to register in the system"""
     while True:
-        email = input("Introduza o seu email: ")
+        email = input("Introduza o seu email [prima ENTER para sair]: ")
         # validate username email regex
-        if not re.match(r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$', email):
+        if not email:
+            return
+        elif not check_email(email):
             print("O email introduzido não é válido.\n")
         elif email_exists(email):
             print("O email introduzido já existe.\n")
@@ -199,7 +205,13 @@ def register():
 
 def login():
     """Function that allows the user to login in the system"""
-    email = input("Introduza o seu email: ")
+    while True:
+        email = input("Introduza o seu email [prima ENTER para sair]: ")
+        if not email:
+            return
+        if not check_email(email):
+            break
+
     password = getpass("Introduza a sua password: ")
     if email_exists(email):
         if verify_email_password(email, password):
