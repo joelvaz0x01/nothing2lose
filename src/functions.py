@@ -469,7 +469,7 @@ def brute_force_key(encrypted_prize, ticket_type, user, mode_aes, mode_hmac):
     key : str
         Generated key
     """
-    print("Para pausar o modo de brute-force, prima CRTRL+C.\n")
+    print("Para pausar o modo de brute-force, prima CTRL+C.\n")
     key_generated = 0
     pause_time = 0
 
