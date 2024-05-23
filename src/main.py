@@ -13,7 +13,7 @@ def main_menu():
             option = int(input("Selecione a opção desejada: "))
             if option == 1:
                 if register():
-                    print("Login with your new account\n")
+                    print("Já pode fazer login com a sua nova conta.")
             elif option == 2:
                 login()
             elif option == 3:

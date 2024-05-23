@@ -125,6 +125,8 @@ def decrypt(encrypted_prize, key, mode_aes, mode_hmac):
     ----------
     encrypted_prize : bytes
         Encrypted data
+    key : bytes
+        Key used for decryption
     mode_aes : str
         Encryption mode chosen for AES128
     mode_hmac : str
@@ -162,12 +164,12 @@ def decrypt(encrypted_prize, key, mode_aes, mode_hmac):
 
     # verify if the HMAC value is correct
     if hmac_hash.digest() != hmac:
-        raise ValueError("HMAC verification failed.")
+        return False
 
     # convert the plaintext bytes to a big integer
     pt = int.from_bytes(pt_bytes, 'big')
-
-    return pt
+    # return pt
+    return True
 
 
 def check_email(email):
@@ -199,7 +201,7 @@ def register():
             break
 
     add_user(email, password)
-    print("Registado com sucesso!")
+    print("Utilizador registado com sucesso!\n")
     return
 
 
@@ -209,7 +211,7 @@ def login():
         email = input("Introduza o seu email [prima ENTER para sair]: ")
         if not email:
             return
-        if not check_email(email):
+        if check_email(email):
             break
 
     password = getpass("Introduza a sua password: ")
@@ -232,11 +234,21 @@ def dashboard_menu(email):
     email : str
         Email of the user
     """
+    global encrypted_prize_s
+    global encrypted_prize_m
+    global encrypted_prize_r
+    global encrypted_prize_l
+    global aes_mode
+    global hmac_mode
+
     while True:
         try:
             print(f'\nDashboad de {email}')
             print("1 - Gerar bilhetes de lotaria")
-            print("2 - Fazer logout")
+            # check if the prizes are already generated
+            if verify_global_scope():
+                print("2 - Realizar brute force")
+            print("3 - Fazer logout")
             option = int(input("Selecione a opção desejada: "))
             if option == 1:
                 aes_mode = select_aes()
@@ -256,10 +268,49 @@ def dashboard_menu(email):
                 encrypted_prize_l = encrypt(prize_l, key_legendary, aes_mode, hmac_mode)
 
                 print("\nPrémios gerados com sucesso!")
-            elif option == 2:
+            elif verify_global_scope() and option == 2:
+                brute_force_menu()
+            elif option == 3:
                 break
             else:
                 print("Opção inválida. Tente novamente.")
+        except ValueError:
+            print("Opção inválida. Tente novamente.")
+
+
+def verify_global_scope():
+    """
+    Function that verifies if the prizes are already generated
+
+    Returns:
+    --------
+    bool
+        True if the prizes are already generated, False otherwise
+    """
+    return 'encrypted_prize_s' in globals() and 'encrypted_prize_m' in globals() and 'encrypted_prize_r' in globals() and 'encrypted_prize_l' in globals()
+
+
+def brute_force_menu():
+    """Menu for the brute force mode"""
+    while True:
+        try:
+            print("Escolha o prémio que deseja fazer brute force:")
+            print("1 - Prémio simples")
+            print("2 - Prémio médio")
+            print("3 - Prémio raro")
+            print("4 - Prémio lendário")
+            print("5 - Sair do modo de força bruta")
+            option = int(input("Selecione a opção desejada: "))
+            if option == 1:
+                brute_force_key(encrypted_prize_s, aes_mode, hmac_mode)
+            elif option == 2:
+                brute_force_key(encrypted_prize_m, aes_mode, hmac_mode)
+            elif option == 3:
+                brute_force_key(encrypted_prize_r, aes_mode, hmac_mode)
+            elif option == 4:
+                brute_force_key(encrypted_prize_l, aes_mode, hmac_mode)
+            elif option == 5:
+                break
         except ValueError:
             print("Opção inválida. Tente novamente.")
 
@@ -307,3 +358,49 @@ def generate_prize_keys(random_bits):
     key = int(key_binary, 2).to_bytes(16, 'big')
 
     return key
+
+
+def brute_force_key(encrypted_prize, mode_aes, mode_hmac):
+    """
+    Function that performs a brute force attack to find the key
+
+    Returns:
+    --------
+    key : str
+        Generated key
+    """
+    print("Para pausar o modo de força bruta, prima CRTRL+C.")
+    print("Caso queira uma dica, prima d. Terá que responder a uma pergunta.")
+    key_generated = 0
+
+    while True:
+        try:
+            key_bin = f'{key_generated:b}'
+            key_binary = key_bin + '0' * (128 - key_generated)
+            key = int(key_binary, 2).to_bytes(16, 'big')
+
+            if decrypt(encrypted_prize, key, mode_aes, mode_hmac):
+                return key
+
+            key_generated += 1
+
+        except KeyboardInterrupt:
+            while True:
+                try:
+                    print("\nO que deseja fazer?")
+                    print("1 - Continuar o modo de força bruta.")
+                    print("2 - Responder a uma pergunta para dimunuir a complexidade.")
+                    print("3 - Sair do modo de força bruta.")
+                    option = int(input("Selecione a opção desejada: "))
+                    if option == 1:
+                        break
+                    elif option == 2:
+                        print("Pergunta")
+                    elif option == 3:
+                        return
+                    else:
+                        print("Opção inválida. Tente novamente.")
+
+                except ValueError:
+                    print("Opção inválida. Tente novamente.")
+                    continue
