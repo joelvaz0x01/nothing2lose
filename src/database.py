@@ -12,7 +12,8 @@ def create_db():
         cursor = sql_connection.cursor()
 
         # create table users if it doesn't exist
-        cursor.execute("CREATE TABLE IF NOT EXISTS users (username text, password text)")
+        cursor.execute("CREATE TABLE IF NOT EXISTS users (username text, password text, ticket_s text, ticket_m text, "
+                       "ticket_r text, ticket_l text)")
 
         sql_connection.commit()
         cursor.close()
@@ -39,6 +40,47 @@ def add_user(user, password):
     sql_connection.commit()
     cursor.close()
     return
+
+
+def add_ticket(user, tickets):
+    """
+    Function to add a ticket to a user
+
+    Attributes:
+    ----------
+    user : str
+        Email of the user
+    tickets : list
+        List of tickets to be added to the user
+    """
+    cursor = sql_connection.cursor()
+    cursor.execute("UPDATE users SET ticket_s = ?, ticket_m = ?, ticket_r = ?, ticket_l = ? WHERE username = ?",
+                   (tickets[0], tickets[1], tickets[2], tickets[3], user))
+    sql_connection.commit()
+    cursor.close()
+    return
+
+
+def get_tickets(user, ticket_type):
+    """
+    Function to get the tickets of a user
+
+    Attributes:
+    ----------
+    user : str
+        Email of the user
+
+    Returns:
+    --------
+    list
+        List of tickets of the user
+    """
+    cursor = sql_connection.cursor()
+    for row in cursor.execute("SELECT * from users WHERE username = ?", (user,)):
+        cursor.close()
+        return row[2 + ticket_type]
+    cursor.close()
+    return None
 
 
 def email_exists(user):

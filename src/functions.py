@@ -1,15 +1,15 @@
-import json
+import base64
 from base64 import b64encode, b64decode
-
 from Crypto.Cipher import AES
 from Crypto.Hash import HMAC, SHA256, SHA512
-from Crypto.Random import get_random_bytes
-from Crypto.Util.Padding import pad, unpad
-
-from database import add_user, email_exists, verify_email_password
+from Crypto.PublicKey import RSA
+from Crypto.Signature import pkcs1_15
+from Crypto.Util.Padding import pad
+from database import add_user, add_ticket, get_tickets, email_exists, verify_email_password
 from getpass import getpass
 from time import time
-from pwinput import pwinput
+
+import json
 import re
 import secrets
 
@@ -161,14 +161,22 @@ def decrypt(encrypted_prize, key, mode_aes, mode_hmac):
 
     # verify if the HMAC value is correct
     if hmac_hash.digest() != hmac:
-        return [-1, -1, False]
+        return [-1, -1, False]  # [decrypted_data, key, is_decrypted]
 
     # convert the plaintext bytes to a big integer
     pt = int.from_bytes(pt_bytes, 'big')
-    return [pt, key, True]
+    return [pt, key, True]  # [decrypted_data, key, is_decrypted]
 
 
 def check_email(email):
+    """
+    Function that checks if the email is valid
+
+    Attributes:
+    ----------
+    email : str
+        Email to be validated
+    """
     return re.match(r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$', email)
 
 
@@ -263,9 +271,27 @@ def dashboard_menu(email):
                 encrypted_prize_r = encrypt(prize_r, key_rare)
                 encrypted_prize_l = encrypt(prize_l, key_legendary)
 
+                # digest and sign the keys
+                sign_keys = [
+                    sign_rsa(load_rsa_private_key(), key_simple),
+                    sign_rsa(load_rsa_private_key(), key_medium),
+                    sign_rsa(load_rsa_private_key(), key_rare),
+                    sign_rsa(load_rsa_private_key(), key_legendary)
+                ]
+
+                # encode the keys to base64
+                sign_keys_base64 = [
+                    b64encode(sign_keys[0]).decode('utf-8'),
+                    b64encode(sign_keys[1]).decode('utf-8'),
+                    b64encode(sign_keys[2]).decode('utf-8'),
+                    b64encode(sign_keys[3]).decode('utf-8')
+                ]
+
+                add_ticket(email, sign_keys_base64)  # add the tickets to the database
+
                 print("\nPrémios gerados com sucesso!\n")
             elif verify_global_scope() and option == 2:
-                brute_force_menu()
+                brute_force_menu(email)
             elif option == 3:
                 break
             else:
@@ -283,21 +309,26 @@ def verify_global_scope():
     bool
         True if the prizes are already generated, False otherwise
     """
-    return 'encrypted_prize_s' in globals() and 'encrypted_prize_m' in globals() and 'encrypted_prize_r' in globals() and 'encrypted_prize_l' in globals()
+    return (
+            'encrypted_prize_s' in globals() and
+            'encrypted_prize_m' in globals() and
+            'encrypted_prize_r' in globals() and
+            'encrypted_prize_l' in globals()
+    )
 
 
-def start_brute_force(encrypted_prize):
-    brute_force = brute_force_key(encrypted_prize, aes_mode, hmac_mode)
+def start_brute_force(encrypted_prize, ticket_type, user):
+    brute_force = brute_force_key(encrypted_prize, ticket_type, user, aes_mode, hmac_mode)
     is_decrypted = brute_force[2]
     if is_decrypted:
-        print(f'Tempo decorrido: {brute_force[3]:.2f} segundos')
+        print(f'\nTempo decorrido: {brute_force[3]:.2f} segundos')
         print(f'Bilhete desencriptado: {brute_force[0]}')
-        print(f'Chave encontrada: {int.from_bytes(brute_force[1], 'big')}')
+        print(f"Chave encontrada: {int.from_bytes(brute_force[1], 'big')}")
 
     return is_decrypted
 
 
-def brute_force_menu():
+def brute_force_menu(user):
     """Menu for the brute force mode"""
     s_is_decrypted = False
     m_is_decrypted = False
@@ -318,16 +349,16 @@ def brute_force_menu():
             if s_is_decrypted and m_is_decrypted and r_is_decrypted and l_is_decrypted:
                 print("Todos os prémios foram decifrados!")
                 break
-            print("5 - Sair do modo de força bruta")
+            print("5 - Sair do modo de brute-force")
             option = int(input("Selecione a opção desejada: "))
             if not s_is_decrypted and option == 1:
-                s_is_decrypted = start_brute_force(encrypted_prize_s)
+                s_is_decrypted = start_brute_force(encrypted_prize_s, "simple", user)
             elif not m_is_decrypted and option == 2:
-                m_is_decrypted = start_brute_force(encrypted_prize_m)
+                m_is_decrypted = start_brute_force(encrypted_prize_m, "medium", user)
             elif not r_is_decrypted and option == 3:
-                r_is_decrypted = start_brute_force(encrypted_prize_r)
+                r_is_decrypted = start_brute_force(encrypted_prize_r, "rare", user)
             elif not l_is_decrypted and option == 4:
-                l_is_decrypted = start_brute_force(encrypted_prize_l)
+                l_is_decrypted = start_brute_force(encrypted_prize_l, "legendary", user)
             elif option == 5:
                 break
         except ValueError:
@@ -386,11 +417,50 @@ def generate_prize_keys(random_bits):
         Generated key
     """
     rand_key = secrets.randbits(random_bits)  # generate a random key
-    print(f"Chave gerada: {rand_key}")
     return convert_key_to_hex(rand_key)
 
 
-def brute_force_key(encrypted_prize, mode_aes, mode_hmac):
+def verify_ticket_key(key, ticket_type, user):
+    """
+    Verifies the key of the ticket
+
+    Attributes:
+    ----------
+    key : bytes
+        Key to be verified
+    ticket_type : str
+        Type of the ticket
+
+    Returns:
+    bool
+        True if the key is verified, False otherwise
+    """
+    id_ticket = -1
+
+    if ticket_type == "simple":
+        id_ticket = 0
+    elif ticket_type == "medium":
+        id_ticket = 1
+    elif ticket_type == "rare":
+        id_ticket = 2
+    elif ticket_type == "legendary":
+        id_ticket = 3
+
+    if id_ticket == -1:
+        return False
+
+    db_key = get_tickets(user, id_ticket)
+    db_key_base64 = b64decode(db_key)
+
+    if verify_rsa(load_rsa_public_key(), key, db_key_base64):
+        print("Verificação do bilhete efetuada com sucesso!")
+        return True
+
+    print("Verificação do bilhete falhou!")
+    return False
+
+
+def brute_force_key(encrypted_prize, ticket_type, user, mode_aes, mode_hmac):
     """
     Function that performs a brute force attack to find the key
 
@@ -399,7 +469,7 @@ def brute_force_key(encrypted_prize, mode_aes, mode_hmac):
     key : str
         Generated key
     """
-    print("Para pausar o modo de força bruta, prima CRTRL+C.\n")
+    print("Para pausar o modo de brute-force, prima CRTRL+C.\n")
     key_generated = 0
     pause_time = 0
 
@@ -410,7 +480,10 @@ def brute_force_key(encrypted_prize, mode_aes, mode_hmac):
             decrypt_result = decrypt(encrypted_prize, key, mode_aes, mode_hmac)
             if decrypt_result[2]:
                 end_time = time() - start_time - pause_time
-                return [decrypt_result[0], decrypt_result[1], decrypt_result[2], end_time]
+                if verify_ticket_key(key, ticket_type, user):
+                    return [decrypt_result[0], decrypt_result[1], decrypt_result[2], end_time]
+
+                return [-1, b'\x00', False, -1]  # [decrypted_data, key, is_decrypted, time]
 
             key_generated += 1
 
@@ -419,20 +492,123 @@ def brute_force_key(encrypted_prize, mode_aes, mode_hmac):
             while True:
                 try:
                     print("\nO que deseja fazer?")
-                    print("1 - Continuar o modo de força bruta.")
-                    print("2 - Responder a uma pergunta para dimunuir a complexidade.")
-                    print("3 - Sair do modo de força bruta.")
+                    print("1 - Continuar o modo de brute-force.")
+                    print("3 - Sair do modo de brute-force.")
                     option = int(input("Selecione a opção desejada: "))
                     if option == 1:
                         pause_time += time() - start_time_pause
+                        print("\nPara pausar o modo de brute-force, prima CRTRL+C.\n")
                         break
-                    elif option == 2:
-                        print("Pergunta")
                     elif option == 3:
-                        return [-1, -1, False, 0]  # key was not found
+                        return [-1, b'\x00', False, -1]  # [decrypted_data, key, is_decrypted, time]
                     else:
                         print("Opção inválida. Tente novamente.")
 
                 except ValueError:
                     print("Opção inválida. Tente novamente.")
                     continue
+
+
+def generate_rsa_keys():
+    """
+    Function that generates RSA keys (2048 bits)
+
+    Returns:
+    --------
+    private_key : bytes
+        Private key generated
+    public_key : bytes
+        Public key generated
+    """
+    key = RSA.generate(2048)
+    private_key = key.export_key()
+    public_key = key.publickey().export_key()
+
+    with open("private_key.pem", "wb") as f:
+        f.write(private_key)
+
+    with open("public_key.pem", "wb") as f:
+        f.write(public_key)
+
+    return private_key, public_key
+
+
+def load_rsa_public_key():
+    """
+    Function that loads the RSA public key
+
+    Returns:
+    --------
+    private_key : bytes
+        Private key loaded
+    public_key : bytes
+        Public key loaded
+    """
+    with open("public_key.pem", "rb") as f:
+        public_key = f.read()
+    return public_key
+
+
+def load_rsa_private_key():
+    """
+    Function that loads the RSA private key
+
+    Returns:
+    --------
+    private_key : bytes
+        Private key loaded
+    public_key : bytes
+        Public key loaded
+    """
+    with open("private_key.pem", "rb") as f:
+        private_key = f.read()
+    return private_key
+
+
+def sign_rsa(private_key, message):
+    """
+    Function that signs a message with a private key
+
+    Attributes:
+    ----------
+    private_key : bytes
+        Private key used to sign the message
+    message : bytes
+        Message to be signed
+
+    Returns:
+    --------
+    signature : bytes
+        Signature of the message
+    """
+    key = RSA.import_key(private_key)
+    h = SHA256.new(message)
+    signature = pkcs1_15.new(key).sign(h)
+    return signature
+
+
+def verify_rsa(public_key, message, signature):
+    """
+    Function that verifies a message with a public key
+
+    Attributes:
+    ----------
+    public_key : bytes
+        Public key used to verify the message
+    message : bytes
+        Message to be verified
+    signature : bytes
+        Signature of the message
+
+    Returns:
+    --------
+    bool
+        True if the message is verified, False otherwise
+    """
+    key = RSA.import_key(public_key)
+    h = SHA256.new(message)
+    try:
+        pkcs1_15.new(key).verify(h, signature)
+        return True
+    except (ValueError, TypeError):
+        return False

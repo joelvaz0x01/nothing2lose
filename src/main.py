@@ -1,5 +1,7 @@
 from database import create_db
-from functions import register, login
+from functions import register, login, generate_rsa_keys
+
+import os
 
 
 def main_menu():
@@ -26,4 +28,6 @@ def main_menu():
 
 if __name__ == "__main__":
     create_db()
+    if not os.path.exists("private.pem") or not os.path.exists("public.pem"):
+        generate_rsa_keys()
     main_menu()
