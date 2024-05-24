@@ -10,12 +10,16 @@ def create_riddle_db():
     try:
         sql_connection_riddles = sqlite3.connect('riddles.db')
         cursor = sql_connection_riddles.cursor()
+
+        # Create the table riddles if it doesn't exist
         cursor.execute("CREATE TABLE riddles (riddle text, answer text)")
         sql_connection_riddles.commit()
         cursor.close()
+        return True
 
     except sqlite3.Error as error:
         print("Erro ao criar a base de dados: ", error)
+        return False
 
 
 def add_riddle(riddle_to_add, answer_to_add):

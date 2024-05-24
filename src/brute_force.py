@@ -1,6 +1,7 @@
 from time import time
 
 from crypto import convert_key_to_hex, decrypt
+from db_riddles import get_random_riddle
 from rsa import verify_ticket_key
 
 
@@ -48,13 +49,15 @@ def brute_force_key(encrypted_prize, ticket_type, user, mode_aes, mode_hmac):
                 try:
                     print("\nO que deseja fazer?")
                     print("1 - Continuar o modo de brute-force.")
-                    print("2 - Responder a um desafio para obter uma dica.")
+                    print("2 - Responder a um desafio para obter uma dica (1 tentativa).")
                     print("3 - Sair do modo de brute-force.")
                     option = int(input("Selecione a opção desejada: "))
                     if option == 1:
                         pause_time += time() - start_time_pause
                         print("\nPara pausar o modo de brute-force, prima CRTRL+C.\n")
                         break
+                    elif option == 2:
+                        get_random_riddle()
                     elif option == 3:
                         return [-1, b'\x00', False, -1]  # [decrypted_data, key, is_decrypted, time]
                     else:

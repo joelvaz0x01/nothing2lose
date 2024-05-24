@@ -28,13 +28,10 @@ def main_menu():
 
 
 if __name__ == "__main__":
-    # Check if the database files exist, if not create them
-    if not os.path.exists("users.db"):
-        create_db()
+    create_db()
 
-    # Check if the riddles database file exists, if not create it and add the riddles from the riddles.txt file
-    if not os.path.exists("riddles.db"):
-        create_riddle_db()
+    # If the riddles database does not exist, create it and add the riddles
+    if create_riddle_db():
         with open("riddles.txt", "r") as file:
             for line in file:
                 riddle_file, answer_file = line.split(";")
