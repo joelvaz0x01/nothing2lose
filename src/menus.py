@@ -1,9 +1,102 @@
 from base64 import b64encode
 
-from src.brute_force import start_brute_force
-from src.crypto import generate_prizes, generate_prize_keys, encrypt
-from src.db_user import add_ticket
-from src.rsa import sign_rsa, load_rsa_private_key
+from brute_force import start_brute_force
+from crypto import generate_prizes, generate_prize_keys, encrypt
+from db_user import add_ticket
+from rsa import sign_rsa, load_rsa_private_key
+from user_management import register, login
+
+
+def main_menu():
+    """Main menu of the program"""
+    while True:
+        try:
+            print("\nNOTHING2LOSE")
+            print("1 - Registar novo utilizador")
+            print("2 - Login com utilizador existente")
+            print("3 - Sair de NOTHING2LOSE\n")
+            option = int(input("Selecione a opção desejada: "))
+            if option == 1:
+                register()
+            elif option == 2:
+                login()
+            elif option == 3:
+                exit(0)
+            else:
+                print("Opção inválida. Tente novamente.")
+        except ValueError:
+            print("Opção inválida. Tente novamente.")
+
+
+def dashboard_menu(email):
+    """
+    Dashboard menu for the user
+
+    Attributes:
+    ----------
+    email : str
+        Email of the user
+    """
+    encrypted_prizes = []
+    aes_mode = None
+    hmac_mode = None
+
+    while True:
+        try:
+            print(f'\nDashboad de {email}')
+            print("1 - Gerar bilhetes de lotaria")
+            if encrypted_prizes:
+                print("2 - Realizar brute force")
+            print("3 - Fazer logout")
+            option = int(input("Selecione a opção desejada: "))
+            if option == 1:
+                aes_mode = aes_menu()
+                hmac_mode = hmac_menu()
+                prize_s, prize_m, prize_r, prize_l = generate_prizes()
+
+                # generate the keys for the prizes
+                keys = [
+                    generate_prize_keys(21),  # simple
+                    generate_prize_keys(22),  # medium
+                    generate_prize_keys(23),  # rare
+                    generate_prize_keys(24)  # legendary
+                ]
+
+                # encrypt the prizes with the respective keys
+                encrypted_prizes = [
+                    encrypt(prize_s, keys[0], aes_mode, hmac_mode),
+                    encrypt(prize_m, keys[1], aes_mode, hmac_mode),
+                    encrypt(prize_r, keys[2], aes_mode, hmac_mode),
+                    encrypt(prize_l, keys[3], aes_mode, hmac_mode)
+                ]
+
+                # digest and sign the keys
+                sign_keys = [
+                    sign_rsa(load_rsa_private_key(), keys[0]),
+                    sign_rsa(load_rsa_private_key(), keys[1]),
+                    sign_rsa(load_rsa_private_key(), keys[2]),
+                    sign_rsa(load_rsa_private_key(), keys[3])
+                ]
+
+                # encode the keys to base64
+                sign_keys_base64 = [
+                    b64encode(sign_keys[0]).decode('utf-8'),
+                    b64encode(sign_keys[1]).decode('utf-8'),
+                    b64encode(sign_keys[2]).decode('utf-8'),
+                    b64encode(sign_keys[3]).decode('utf-8')
+                ]
+
+                add_ticket(email, sign_keys_base64)  # add the tickets to the database
+
+                print("\nPrémios gerados com sucesso!\n")
+            elif encrypted_prizes and aes_mode is not None and hmac_mode is not None and option == 2:
+                brute_force_menu(email, encrypted_prizes, aes_mode, hmac_mode)
+            elif option == 3:
+                break
+            else:
+                print("Opção inválida. Tente novamente.")
+        except ValueError:
+            print("Opção inválida. Tente novamente.")
 
 
 def aes_menu():
@@ -90,76 +183,5 @@ def brute_force_menu(email, encrypted_prizes, aes_mode, hmac_mode):
                 l_is_decrypted = start_brute_force(encrypted_prizes[3], "legendary", email, aes_mode, hmac_mode)
             elif option == 5:
                 break
-        except ValueError:
-            print("Opção inválida. Tente novamente.")
-
-
-def dashboard_menu(email):
-    """
-    Dashboard menu for the user
-
-    Attributes:
-    ----------
-    email : str
-        Email of the user
-    """
-    encrypted_prizes = []
-    aes_mode = None
-    hmac_mode = None
-
-    while True:
-        try:
-            print(f'\nDashboad de {email}')
-            print("1 - Gerar bilhetes de lotaria")
-            if encrypted_prizes:
-                print("2 - Realizar brute force")
-            print("3 - Fazer logout")
-            option = int(input("Selecione a opção desejada: "))
-            if option == 1:
-                aes_mode = aes_menu()
-                hmac_mode = hmac_menu()
-                prize_s, prize_m, prize_r, prize_l = generate_prizes()
-
-                # generate the keys for the prizes
-                keys = [
-                    generate_prize_keys(21),  # simple
-                    generate_prize_keys(22),  # medium
-                    generate_prize_keys(23),  # rare
-                    generate_prize_keys(24)  # legendary
-                ]
-
-                # encrypt the prizes with the respective keys
-                encrypted_prizes = [
-                    encrypt(prize_s, keys[0], aes_mode, hmac_mode),
-                    encrypt(prize_m, keys[1], aes_mode, hmac_mode),
-                    encrypt(prize_r, keys[2], aes_mode, hmac_mode),
-                    encrypt(prize_l, keys[3], aes_mode, hmac_mode)
-                ]
-
-                # digest and sign the keys
-                sign_keys = [
-                    sign_rsa(load_rsa_private_key(), keys[0]),
-                    sign_rsa(load_rsa_private_key(), keys[1]),
-                    sign_rsa(load_rsa_private_key(), keys[2]),
-                    sign_rsa(load_rsa_private_key(), keys[3])
-                ]
-
-                # encode the keys to base64
-                sign_keys_base64 = [
-                    b64encode(sign_keys[0]).decode('utf-8'),
-                    b64encode(sign_keys[1]).decode('utf-8'),
-                    b64encode(sign_keys[2]).decode('utf-8'),
-                    b64encode(sign_keys[3]).decode('utf-8')
-                ]
-
-                add_ticket(email, sign_keys_base64)  # add the tickets to the database
-
-                print("\nPrémios gerados com sucesso!\n")
-            elif encrypted_prizes and aes_mode is not None and hmac_mode is not None and option == 2:
-                brute_force_menu(email, encrypted_prizes, aes_mode, hmac_mode)
-            elif option == 3:
-                break
-            else:
-                print("Opção inválida. Tente novamente.")
         except ValueError:
             print("Opção inválida. Tente novamente.")

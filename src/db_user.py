@@ -162,7 +162,7 @@ def verify_email_password(email, password):
     """
     Function to check if a user exists in the database and if the password is correct
 
-    Atributes:
+    Attributes:
     ----------
     email : str
         Email provided by the user
