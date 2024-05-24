@@ -1,9 +1,9 @@
 from base64 import b64encode
 
-from src.brute_force import start_brute_force
-from src.crypto import generate_prizes, generate_prize_keys, encrypt
-from src.db_user import add_ticket
-from src.rsa import sign_rsa, load_rsa_private_key
+from brute_force import start_brute_force
+from crypto import generate_prizes, generate_prize_keys, encrypt
+from db_user import add_ticket
+from rsa import sign_rsa, load_rsa_private_key
 
 
 def dashboard_menu(email):

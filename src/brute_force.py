@@ -1,7 +1,7 @@
 from time import time
 
-from src.crypto import convert_key_to_hex, decrypt
-from src.rsa import verify_ticket_key
+from crypto import convert_key_to_hex, decrypt
+from rsa import verify_ticket_key
 
 
 def start_brute_force(encrypted_prize, ticket_type, email, aes_mode, hmac_mode):
@@ -48,6 +48,7 @@ def brute_force_key(encrypted_prize, ticket_type, user, mode_aes, mode_hmac):
                 try:
                     print("\nO que deseja fazer?")
                     print("1 - Continuar o modo de brute-force.")
+                    print("2 - Responder a um desafio para obter uma dica.")
                     print("3 - Sair do modo de brute-force.")
                     option = int(input("Selecione a opção desejada: "))
                     if option == 1:

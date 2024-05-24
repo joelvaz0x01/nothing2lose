@@ -4,7 +4,7 @@ from Crypto.Hash import SHA256
 from Crypto.PublicKey import RSA
 from Crypto.Signature import pkcs1_15
 
-from src.db_user import get_tickets
+from db_user import get_tickets
 
 
 def generate_rsa_keys():

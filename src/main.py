@@ -1,7 +1,7 @@
-from src.db_riddles import create_riddle_db, add_riddle
-from src.db_user import create_db
-from src.rsa import generate_rsa_keys
-from src.user_management import register, login
+from db_riddles import create_riddle_db, add_riddle
+from db_user import create_db
+from rsa import generate_rsa_keys
+from user_management import register, login
 
 import os
 

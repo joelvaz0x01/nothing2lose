@@ -1,7 +1,7 @@
 from getpass import getpass
 
-from src.db_user import email_exists, add_user, verify_email_password
-from src.menus import dashboard_menu
+from db_user import email_exists, add_user, verify_email_password
+from menus import dashboard_menu
 
 import re
 
