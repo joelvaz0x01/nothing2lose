@@ -1,5 +1,6 @@
-from database import create_db
-from functions import register, login, generate_rsa_keys
+from src.db_user import create_db
+from src.user_management import register, login
+from src.rsa import generate_rsa_keys
 
 import os
 
@@ -14,12 +15,11 @@ def main_menu():
             print("3 - Sair de NOTHING2LOSE\n")
             option = int(input("Selecione a opção desejada: "))
             if option == 1:
-                if register():
-                    print("Já pode fazer login com a sua nova conta.")
+                register()
             elif option == 2:
                 login()
             elif option == 3:
-                break
+                exit(0)
             else:
                 print("Opção inválida. Tente novamente.")
         except ValueError:
@@ -28,6 +28,6 @@ def main_menu():
 
 if __name__ == "__main__":
     create_db()
-    if not os.path.exists("private.pem") or not os.path.exists("public.pem"):
+    if not os.path.exists("private_key.pem") or not os.path.exists("public_key.pem"):
         generate_rsa_keys()
     main_menu()
