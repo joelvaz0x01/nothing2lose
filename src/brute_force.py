@@ -58,17 +58,21 @@ def brute_force_key(encrypted_prize, ticket_type, user, mode_aes, mode_hmac):
                         pause_time += time() - start_time_pause
                         print("\nPara pausar o modo de brute-force, prima CRTRL+C.\n")
                         break
-                    elif option == 2:
+                    elif try_answer and option == 2:
                         riddle = get_random_riddle()
                         print(f'\n{riddle}')
                         answer = input("Resposta: ")
-                        if verify_riddle_answer(riddle, answer):
-                            print("Resposta correta!")
+                        if verify_riddle_answer(riddle, answer.lower()):
                             try_answer = True
+                            print("Resposta correta! A decremenatar o tempo de espera.")
+                            # TODO: Decrementar o tempo de espera
+                            print("\nPara pausar o modo de brute-force, prima CRTRL+C.\n")
+                            break
                         else:
-                            print("Resposta incorreta.")
                             try_answer = True
-
+                            print("Resposta incorreta! A voltar ao modo de brute-force.")
+                            print("\nPara pausar o modo de brute-force, prima CRTRL+C.\n")
+                            break
                     elif option == 3:
                         return [-1, b'\x00', False, -1]  # [decrypted_data, key, is_decrypted, time]
                     else:
