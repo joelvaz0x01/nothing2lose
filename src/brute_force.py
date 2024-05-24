@@ -1,7 +1,7 @@
 from time import time
 
 from crypto import convert_key_to_hex, decrypt
-from db_riddles import get_random_riddle
+from db_riddles import get_random_riddle, verify_riddle_answer
 from rsa import verify_ticket_key
 
 
@@ -26,6 +26,7 @@ def brute_force_key(encrypted_prize, ticket_type, user, mode_aes, mode_hmac):
         Generated key
     """
     print("Para pausar o modo de brute-force, prima CTRL+C.\n")
+    try_answer = False
     key_generated = 0
     pause_time = 0
 
@@ -49,7 +50,8 @@ def brute_force_key(encrypted_prize, ticket_type, user, mode_aes, mode_hmac):
                 try:
                     print("\nO que deseja fazer?")
                     print("1 - Continuar o modo de brute-force.")
-                    print("2 - Responder a um desafio para obter uma dica (1 tentativa).")
+                    if not try_answer:
+                        print("2 - Responder a um desafio para obter uma dica (1 tentativa).")
                     print("3 - Sair do modo de brute-force.")
                     option = int(input("Selecione a opção desejada: "))
                     if option == 1:
@@ -57,7 +59,16 @@ def brute_force_key(encrypted_prize, ticket_type, user, mode_aes, mode_hmac):
                         print("\nPara pausar o modo de brute-force, prima CRTRL+C.\n")
                         break
                     elif option == 2:
-                        get_random_riddle()
+                        riddle = get_random_riddle()
+                        print(f'\n{riddle}')
+                        answer = input("Resposta: ")
+                        if verify_riddle_answer(riddle, answer):
+                            print("Resposta correta!")
+                            try_answer = True
+                        else:
+                            print("Resposta incorreta.")
+                            try_answer = True
+
                     elif option == 3:
                         return [-1, b'\x00', False, -1]  # [decrypted_data, key, is_decrypted, time]
                     else:

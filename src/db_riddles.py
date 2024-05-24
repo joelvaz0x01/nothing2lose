@@ -67,14 +67,14 @@ def get_random_riddle():
 
     Returns:
     --------
-    str, str
-        Riddle and answer
+    str
+        Random riddle from the database
     """
     cursor = sql_connection_riddles.cursor()
     cursor.execute("SELECT * FROM riddles ORDER BY RANDOM() LIMIT 1")
-    riddle, answer = cursor.fetchone()
+    riddle, _ = cursor.fetchone()
     cursor.close()
-    return riddle, answer
+    return riddle
 
 
 def check_riddle_answer(answer, hashed_answer):
@@ -108,3 +108,28 @@ def check_riddle_answer(answer, hashed_answer):
     stored_answer = base64.b64decode(hashed_answer[44:])
     new_answer = hashlib.pbkdf2_hmac('sha256', answer.encode('utf-8'), salt, 100000)
     return stored_answer == new_answer
+
+
+def verify_riddle_answer(riddle, answer):
+    """
+    Function to verify if the answer is correct
+
+    Attributes:
+    ----------
+    riddle : str
+        Riddle to be checked
+    answer : str
+        Answer to be checked
+
+    Returns:
+    --------
+    bool
+        True if the answer is correct, False otherwise
+    """
+    cursor = sql_connection_riddles.cursor()
+    cursor.execute("SELECT answer FROM riddles WHERE riddle = ?", (riddle,))
+    hashed_answer = cursor.fetchone()
+    cursor.close()
+    if hashed_answer is None:
+        return False
+    return check_riddle_answer(answer, hashed_answer[0])
