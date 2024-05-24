@@ -1,31 +1,9 @@
 from base64 import b64encode
 
-from brute_force import start_brute_force
-from crypto import generate_prizes, generate_prize_keys, encrypt
-from db_user import add_ticket
-from rsa import sign_rsa, load_rsa_private_key
-from user_management import register, login
-
-
-def main_menu():
-    """Main menu of the program"""
-    while True:
-        try:
-            print("\nNOTHING2LOSE")
-            print("1 - Registar novo utilizador")
-            print("2 - Login com utilizador existente")
-            print("3 - Sair de NOTHING2LOSE\n")
-            option = int(input("Selecione a opção desejada: "))
-            if option == 1:
-                register()
-            elif option == 2:
-                login()
-            elif option == 3:
-                exit(0)
-            else:
-                print("Opção inválida. Tente novamente.")
-        except ValueError:
-            print("Opção inválida. Tente novamente.")
+from src.brute_force import start_brute_force
+from src.crypto import generate_prizes, generate_prize_keys, encrypt
+from src.db_user import add_ticket
+from src.rsa import sign_rsa, load_rsa_private_key
 
 
 def dashboard_menu(email):

@@ -1,7 +1,7 @@
 from time import time
 
-from crypto import convert_key_to_hex, decrypt
-from rsa import verify_ticket_key
+from src.crypto import convert_key_to_hex, decrypt
+from src.rsa import verify_ticket_key
 
 
 def start_brute_force(encrypted_prize, ticket_type, email, aes_mode, hmac_mode):
