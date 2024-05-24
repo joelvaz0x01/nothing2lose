@@ -181,3 +181,25 @@ def verify_email_password(email, password):
             return True
     cursor.close()
     return False
+
+
+def get_half_ticket(ticket_type):
+    """
+    Function to get half tickets for a specific type
+
+    Attributes:
+    ----------
+    ticket_type : int
+        Type of ticket to be returned
+
+    Returns:
+    --------
+    str
+        Half ticket for the specified type
+    """
+    cursor = sql_connection.cursor()
+    for row in cursor.execute("SELECT * from users"):
+        cursor.close()
+        return row[2 + ticket_type][:44]
+    cursor.close()
+    return None

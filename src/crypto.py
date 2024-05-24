@@ -115,7 +115,7 @@ def decrypt(encrypted_prize, key, mode_aes, mode_hmac):
     return [pt, key, True]  # [decrypted_data, key, is_decrypted]
 
 
-def convert_key_to_hex(key):
+def convert_key_to_hex(key, given_key):
     """
     Converts the key to bytes
 
@@ -129,7 +129,12 @@ def convert_key_to_hex(key):
     prize_bytes : bytes
         Prize converted to bytes
     """
-    key_in_binary = f'{key:b}'
+    if given_key is not None:
+        given_key_from_bytes = ''.join(format(byte, '08b') for byte in given_key)
+        key_in_binary = given_key_from_bytes + f'{key:b}'
+    else:
+        key_in_binary = f'{key:b}'
+
     bit_length = len(key_in_binary)
     final_key_binary = key_in_binary + '0' * (128 - bit_length)  # fill the rest of the key with zeros
     final_key_hex = int(final_key_binary, 2).to_bytes(16, 'big')
@@ -151,7 +156,7 @@ def generate_prize_keys(random_bits):
         Generated key
     """
     rand_key = secrets.randbits(random_bits)  # generate a random key
-    return convert_key_to_hex(rand_key)
+    return convert_key_to_hex(rand_key, None)
 
 
 def generate_prizes():

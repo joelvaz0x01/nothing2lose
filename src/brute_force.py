@@ -5,8 +5,8 @@ from db_riddles import get_random_riddle, verify_riddle_answer
 from rsa import verify_ticket_key
 
 
-def start_brute_force(encrypted_prize, ticket_type, email, aes_mode, hmac_mode):
-    brute_force = brute_force_key(encrypted_prize, ticket_type, email, aes_mode, hmac_mode)
+def start_brute_force(encrypted_prize, ticket_type, half_key, email, aes_mode, hmac_mode):
+    brute_force = brute_force_key(encrypted_prize, ticket_type, half_key, email, aes_mode, hmac_mode)
     is_decrypted = brute_force[2]
     if is_decrypted:
         print(f'\nTempo decorrido: {brute_force[3]:.2f} segundos')
@@ -16,7 +16,7 @@ def start_brute_force(encrypted_prize, ticket_type, email, aes_mode, hmac_mode):
     return is_decrypted
 
 
-def brute_force_key(encrypted_prize, ticket_type, user, mode_aes, mode_hmac):
+def brute_force_key(encrypted_prize, ticket_type, half_key, user, mode_aes, mode_hmac):
     """
     Function that performs a brute force attack to find the key
 
@@ -27,13 +27,14 @@ def brute_force_key(encrypted_prize, ticket_type, user, mode_aes, mode_hmac):
     """
     print("Para pausar o modo de brute-force, prima CTRL+C.\n")
     try_answer = False
+    given_key = None
     key_generated = 0
     pause_time = 0
 
     start_time = time()
     while True:
         try:
-            key = convert_key_to_hex(key_generated)
+            key = convert_key_to_hex(key_generated, given_key)
             decrypt_result = decrypt(encrypted_prize, key, mode_aes, mode_hmac)
             if decrypt_result[2]:
                 end_time = time() - start_time - pause_time
@@ -58,14 +59,15 @@ def brute_force_key(encrypted_prize, ticket_type, user, mode_aes, mode_hmac):
                         pause_time += time() - start_time_pause
                         print("\nPara pausar o modo de brute-force, prima CRTRL+C.\n")
                         break
-                    elif try_answer and option == 2:
+                    elif not try_answer and option == 2:
                         riddle = get_random_riddle()
                         print(f'\n{riddle}')
                         answer = input("Resposta: ")
                         if verify_riddle_answer(riddle, answer.lower()):
                             try_answer = True
                             print("Resposta correta! A decremenatar o tempo de espera.")
-                            # TODO: Decrementar o tempo de espera
+                            given_key = half_key
+                            key_generated = 0
                             print("\nPara pausar o modo de brute-force, prima CRTRL+C.\n")
                             break
                         else:

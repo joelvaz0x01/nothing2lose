@@ -16,6 +16,7 @@ def dashboard_menu(email):
         Email of the user
     """
     encrypted_prizes = []
+    half_keys = []
     aes_mode = None
     hmac_mode = None
 
@@ -34,11 +35,13 @@ def dashboard_menu(email):
 
                 # generate the keys for the prizes
                 keys = [
-                    generate_prize_keys(21),  # simple
-                    generate_prize_keys(22),  # medium
-                    generate_prize_keys(23),  # rare
-                    generate_prize_keys(24)  # legendary
+                    generate_prize_keys(22),  # simple
+                    generate_prize_keys(24),  # medium
+                    generate_prize_keys(26),  # rare
+                    generate_prize_keys(28)  # legendary
                 ]
+
+                half_keys = [key[:len(key) // 2] for key in keys]
 
                 # encrypt the prizes with the respective keys
                 encrypted_prizes = [
@@ -67,8 +70,8 @@ def dashboard_menu(email):
                 add_ticket(email, sign_keys_base64)  # add the tickets to the database
 
                 print("\nPrémios gerados com sucesso!\n")
-            elif encrypted_prizes and aes_mode is not None and hmac_mode is not None and option == 2:
-                brute_force_menu(email, encrypted_prizes, aes_mode, hmac_mode)
+            elif encrypted_prizes and half_keys and aes_mode is not None and hmac_mode is not None and option == 2:
+                brute_force_menu(email, encrypted_prizes, half_keys, aes_mode, hmac_mode)
             elif option == 3:
                 break
             else:
@@ -128,7 +131,7 @@ def hmac_menu():
             print("Opção inválida. Tente novamente.")
 
 
-def brute_force_menu(email, encrypted_prizes, aes_mode, hmac_mode):
+def brute_force_menu(email, encrypted_prizes, half_keys, aes_mode, hmac_mode):
     """Menu for the brute force mode"""
     s_is_decrypted = False
     m_is_decrypted = False
@@ -152,13 +155,41 @@ def brute_force_menu(email, encrypted_prizes, aes_mode, hmac_mode):
             print("5 - Sair do modo de brute-force")
             option = int(input("Selecione a opção desejada: "))
             if not s_is_decrypted and option == 1:
-                s_is_decrypted = start_brute_force(encrypted_prizes[0], "simple", email, aes_mode, hmac_mode)
+                s_is_decrypted = start_brute_force(
+                    encrypted_prizes[0],
+                    "simple",
+                    half_keys[0],
+                    email,
+                    aes_mode,
+                    hmac_mode
+                )
             elif not m_is_decrypted and option == 2:
-                m_is_decrypted = start_brute_force(encrypted_prizes[1], "medium", email, aes_mode, hmac_mode)
+                m_is_decrypted = start_brute_force(
+                    encrypted_prizes[1],
+                    "medium",
+                    half_keys[1],
+                    email,
+                    aes_mode,
+                    hmac_mode
+                )
             elif not r_is_decrypted and option == 3:
-                r_is_decrypted = start_brute_force(encrypted_prizes[2], "rare", email, aes_mode, hmac_mode)
+                r_is_decrypted = start_brute_force(
+                    encrypted_prizes[2],
+                    "rare",
+                    half_keys[2],
+                    email,
+                    aes_mode,
+                    hmac_mode
+                )
             elif not l_is_decrypted and option == 4:
-                l_is_decrypted = start_brute_force(encrypted_prizes[3], "legendary", email, aes_mode, hmac_mode)
+                l_is_decrypted = start_brute_force(
+                    encrypted_prizes[3],
+                    "legendary",
+                    half_keys[3],
+                    email,
+                    aes_mode,
+                    hmac_mode
+                )
             elif option == 5:
                 break
         except ValueError:

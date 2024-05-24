@@ -18,7 +18,6 @@ def create_riddle_db():
         return True
 
     except sqlite3.Error as error:
-        print("Erro ao criar a base de dados: ", error)
         return False
 
 
