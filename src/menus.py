@@ -16,7 +16,7 @@ def dashboard_menu(email):
         Email of the user
     """
     encrypted_prizes = []
-    half_keys = []
+    give_keys = []
     aes_mode = None
     hmac_mode = None
 
@@ -41,7 +41,7 @@ def dashboard_menu(email):
                     generate_prize_keys(28)  # legendary
                 ]
 
-                half_keys = [key[:len(key) // 2] for key in keys]
+                give_keys = [key[:len(key) // 8] for key in keys]
 
                 # encrypt the prizes with the respective keys
                 encrypted_prizes = [
@@ -70,8 +70,8 @@ def dashboard_menu(email):
                 add_ticket(email, sign_keys_base64)  # add the tickets to the database
 
                 print("\nPrémios gerados com sucesso!\n")
-            elif encrypted_prizes and half_keys and aes_mode is not None and hmac_mode is not None and option == 2:
-                brute_force_menu(email, encrypted_prizes, half_keys, aes_mode, hmac_mode)
+            elif encrypted_prizes and give_keys and aes_mode is not None and hmac_mode is not None and option == 2:
+                brute_force_menu(email, encrypted_prizes, give_keys, aes_mode, hmac_mode)
             elif option == 3:
                 break
             else:
@@ -131,7 +131,7 @@ def hmac_menu():
             print("Opção inválida. Tente novamente.")
 
 
-def brute_force_menu(email, encrypted_prizes, half_keys, aes_mode, hmac_mode):
+def brute_force_menu(email, encrypted_prizes, give_keys, aes_mode, hmac_mode):
     """Menu for the brute force mode"""
     s_is_decrypted = False
     m_is_decrypted = False
@@ -158,7 +158,7 @@ def brute_force_menu(email, encrypted_prizes, half_keys, aes_mode, hmac_mode):
                 s_is_decrypted = start_brute_force(
                     encrypted_prizes[0],
                     "simple",
-                    half_keys[0],
+                    give_keys[0],
                     email,
                     aes_mode,
                     hmac_mode
@@ -167,7 +167,7 @@ def brute_force_menu(email, encrypted_prizes, half_keys, aes_mode, hmac_mode):
                 m_is_decrypted = start_brute_force(
                     encrypted_prizes[1],
                     "medium",
-                    half_keys[1],
+                    give_keys[1],
                     email,
                     aes_mode,
                     hmac_mode
@@ -176,7 +176,7 @@ def brute_force_menu(email, encrypted_prizes, half_keys, aes_mode, hmac_mode):
                 r_is_decrypted = start_brute_force(
                     encrypted_prizes[2],
                     "rare",
-                    half_keys[2],
+                    give_keys[2],
                     email,
                     aes_mode,
                     hmac_mode
@@ -185,7 +185,7 @@ def brute_force_menu(email, encrypted_prizes, half_keys, aes_mode, hmac_mode):
                 l_is_decrypted = start_brute_force(
                     encrypted_prizes[3],
                     "legendary",
-                    half_keys[3],
+                    give_keys[3],
                     email,
                     aes_mode,
                     hmac_mode

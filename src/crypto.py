@@ -130,8 +130,8 @@ def convert_key_to_hex(key, given_key):
         Prize converted to bytes
     """
     if given_key is not None:
-        given_key_from_bytes = ''.join(format(byte, '08b') for byte in given_key)
-        key_in_binary = given_key_from_bytes + f'{key:b}'
+        given_key_binary = bin(int(given_key.hex(), 16))[2:]
+        key_in_binary = given_key_binary + f'{key:b}'
     else:
         key_in_binary = f'{key:b}'
 
